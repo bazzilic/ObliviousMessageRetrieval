@@ -1,9 +1,9 @@
 #pragma once
 
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<experimental/filesystem>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <experimental/filesystem>
 using namespace std;
 
 void createDatabase(int num_of_transactions = 524288, int payloadSize = 306){

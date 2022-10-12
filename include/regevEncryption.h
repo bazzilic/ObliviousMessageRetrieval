@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/ternaryuniformgenerator.h"
+#include "math/ternaryuniformgenerator.h" // palisade
 #include "math/discreteuniformgenerator.h"
 #include "math/discretegaussiangenerator.h"
 #include <iostream>
@@ -16,7 +16,7 @@ struct regevParam{
         n = 450;
         q = 65537;
         std_dev = 1.3;
-        m = 16000; 
+        m = 16000;
     }
     regevParam(int n, int q, double std_dev, int m)
     : n(n), q(q), std_dev(std_dev), m(m)
@@ -115,7 +115,7 @@ struct PVWParam{
         n = 450;
         q = 65537;
         std_dev = 1.3;
-        m = 16000; 
+        m = 16000;
         ell = 4;
     }
     PVWParam(int n, int q, double std_dev, int m, int ell)

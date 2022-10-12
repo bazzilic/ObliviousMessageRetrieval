@@ -2,7 +2,7 @@
 
 #include "regevEncryption.h"
 #include "seal/seal.h"
-#include <NTL/BasicThreadPool.h>
+//#include <NTL/BasicThreadPool.h>
 #include "global.h"
 using namespace seal;
 
@@ -53,24 +53,24 @@ void innerSum_inplace(Ciphertext& output, const GaloisKeys& gal_keys, const size
 
 // Takes one SIC compressed and expand then into SIC's each encrypt 0/1 in slots up to toExpandNum
 void expandSIC(vector<Ciphertext>& expanded, Ciphertext& toExpand, const GaloisKeys& gal_keys,
-                const size_t& degree, const SEALContext& context, const SEALContext& context2, const size_t& toExpandNum, const size_t& start = 0){ 
+                const size_t& degree, const SEALContext& context, const SEALContext& context2, const size_t& toExpandNum, const size_t& start = 0){
     BatchEncoder batch_encoder(context);
     Evaluator evaluator(context);
     expanded.resize(toExpandNum);
 
-    vector<uint64_t> pod_matrix(degree, 0ULL); 
+    vector<uint64_t> pod_matrix(degree, 0ULL);
     pod_matrix[0] = 1ULL;
     Plaintext plain_matrix;
     batch_encoder.encode(pod_matrix, plain_matrix);
-    for(size_t i = 0; i < toExpandNum; i++){ 
-	    if((i+start) != 0){ 
+    for(size_t i = 0; i < toExpandNum; i++){
+	    if((i+start) != 0){
             // rotate one slot at a time
             if((i+start) == degree/2){
                 evaluator.rotate_columns_inplace(toExpand, gal_keys);
-                evaluator.rotate_rows_inplace(toExpand, 1, gal_keys); 
+                evaluator.rotate_rows_inplace(toExpand, 1, gal_keys);
             }
             else{
-                evaluator.rotate_rows_inplace(toExpand, 1, gal_keys); 
+                evaluator.rotate_rows_inplace(toExpand, 1, gal_keys);
             }
         }
         // extract the first slot
@@ -78,14 +78,14 @@ void expandSIC(vector<Ciphertext>& expanded, Ciphertext& toExpand, const GaloisK
 	    evaluator.mod_switch_to_next_inplace(expanded[i]);
 	    evaluator.mod_switch_to_next_inplace(expanded[i]);
         // populate to all slots
-        innerSum_inplace(expanded[i], gal_keys_last, degree, degree, context2); 
+        innerSum_inplace(expanded[i], gal_keys_last, degree, degree, context2);
     }
 }
 
 // take PVW sk's and output switching key, which is a ciphertext of size \ell*n, where n is the PVW secret key dimension
-void genSwitchingKeyPVWPacked(vector<Ciphertext>& switchingKey, const SEALContext& context, const size_t& degree, 
+void genSwitchingKeyPVWPacked(vector<Ciphertext>& switchingKey, const SEALContext& context, const size_t& degree,
                          const PublicKey& BFVpk, const SecretKey& BFVsk, const PVWsk& regSk, const PVWParam& params){ // TODOmulti: can be multithreaded easily
-    
+
     BatchEncoder batch_encoder(context);
     Encryptor encryptor(context, BFVpk);
     // Use symmetric encryption to enable seed mode to reduce the detection key size
@@ -112,8 +112,8 @@ void genSwitchingKeyPVWPacked(vector<Ciphertext>& switchingKey, const SEALContex
 }
 
 // This is the same as the function above but with a return type, for detection key size calculation
-vector<seal::Serializable<Ciphertext>> genSwitchingKeyPVWPacked(const SEALContext& context, const size_t& degree, 
-                         const PublicKey& BFVpk, const SecretKey& BFVsk, const PVWsk& regSk, const PVWParam& params){ 
+vector<seal::Serializable<Ciphertext>> genSwitchingKeyPVWPacked(const SEALContext& context, const size_t& degree,
+                         const PublicKey& BFVpk, const SecretKey& BFVsk, const PVWsk& regSk, const PVWParam& params){
     vector<seal::Serializable<Ciphertext>> switchingKey;
 
     BatchEncoder batch_encoder(context);
@@ -145,7 +145,7 @@ vector<seal::Serializable<Ciphertext>> genSwitchingKeyPVWPacked(const SEALContex
 // compute b - as with packed swk but also only requires one rot key
 void computeBplusASPVWOptimized(vector<Ciphertext>& output, \
         const vector<PVWCiphertext>& toPack, vector<Ciphertext>& switchingKey, const GaloisKeys& gal_keys,
-        const SEALContext& context, const PVWParam& param){ 
+        const SEALContext& context, const PVWParam& param){
     MemoryPoolHandle my_pool = MemoryPoolHandle::New(true);
     auto old_prof = MemoryManager::SwitchProfile(std::make_unique<MMProfFixed>(std::move(my_pool)));
 
@@ -174,7 +174,7 @@ void computeBplusASPVWOptimized(vector<Ciphertext>& output, \
 
         Plaintext plaintext;
         batch_encoder.encode(vectorOfInts, plaintext);
-        
+
         for(int j = 0; j < param.ell; j++){
             if(i == 0){
                 evaluator.multiply_plain(switchingKey[j], plaintext, output[j]); // times s[i]
@@ -192,7 +192,7 @@ void computeBplusASPVWOptimized(vector<Ciphertext>& output, \
     for(int i = 0; i < param.ell; i++){
         vector<uint64_t> vectorOfInts(toPack.size());
         for(size_t j = 0; j < toPack.size(); j++){
-            vectorOfInts[j] = uint64_t((toPack[j].b[i].ConvertToInt() - 16384) % 65537); 
+            vectorOfInts[j] = uint64_t((toPack[j].b[i].ConvertToInt() - 16384) % 65537);
             // 16384 here is due to the implementation of PVW ciphertext. Needs to shift by ~q/4 so that the decryption is around 0
         }
         Plaintext plaintext;
@@ -200,7 +200,7 @@ void computeBplusASPVWOptimized(vector<Ciphertext>& output, \
         batch_encoder.encode(vectorOfInts, plaintext);
         evaluator.negate_inplace(output[i]);
         evaluator.add_plain_inplace(output[i], plaintext);
-        evaluator.mod_switch_to_next_inplace(output[i]); 
+        evaluator.mod_switch_to_next_inplace(output[i]);
     }
     MemoryManager::SwitchProfile(std::move(old_prof));
 }
@@ -366,7 +366,7 @@ void RangeCheck_PatersonStockmeyer(Ciphertext& ciphertext, const Ciphertext& inp
             evaluator.add_inplace(ciphertext, levelSum);
         }
     }
-    vector<uint64_t> intInd(degree, 1); 
+    vector<uint64_t> intInd(degree, 1);
     Plaintext plainInd;
     Ciphertext tmep;
     batch_encoder.encode(intInd, plainInd);
