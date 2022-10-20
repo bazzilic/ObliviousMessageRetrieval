@@ -23,9 +23,7 @@ vector<vector<uint64_t>> preparingTransactionsFormal(PVWpk &pk,
     {
         auto temp = rand() % numOfTransactions;
         while (msgs[temp])
-        {
             temp = rand() % numOfTransactions;
-        }
         msgs[temp] = 1;
         i++;
     }
@@ -136,7 +134,7 @@ void OMD1p()
 
     size_t poly_modulus_degree = poly_modulus_degree_glb;
 
-    int numOfTransactions = numOfTransactions_glb; // 1 << 19
+    int numOfTransactions = numOfTransactions_glb;
     createDatabase(numOfTransactions, 306); // one time; note that this 306 represents 612 bytes because each slot can contain 2 bytes
 
     time_end = chrono::high_resolution_clock::now();
@@ -145,12 +143,14 @@ void OMD1p()
 
     // step 1. generate PVW sk
     // recipient side
-    cout << "Generating sk for PVW cts... " << flush;
     time_start = chrono::high_resolution_clock::now();
 
     auto params = PVWParam(450, 65537, 1.3, 16000, 1);
     auto sk = PVWGenerateSecretKey(params);
     auto pk = PVWGeneratePublicKey(params, sk);
+
+    cout << "Ell == " << params.ell << endl;
+    cout << "Generating sk for PVW cts... " << flush;
 
     time_end = chrono::high_resolution_clock::now();
     cout << "done in " << formatDuration(time_end - time_start) << endl << endl;
